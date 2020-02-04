@@ -5,8 +5,15 @@ import os
 import time
 
 # Read the data and gets its text
-path_to_file = tf.keras.utils.get_file('shakespeare.txt', 'https://storage.googleapis.com/download.tensorflow.org/data/shakespeare.txt')
-text = open(path_to_file, 'rb').read().decode(encoding='utf-8')
+#path_to_file = tf.keras.utils.get_file('shakespeare.txt', 'https://storage.googleapis.com/download.tensorflow.org/data/shakespeare.txt')
+text = open('author-quote.txt', 'rb').read().decode(encoding='utf-8')
+lines = text.splitlines()
+whole = ''
+for i in lines:
+    splits = i.split('\t')
+    if (len(splits[1]) < 60):
+        whole += splits[1] + '\n' 
+text = whole
 
 vocab = sorted(set(text))
 
@@ -50,9 +57,10 @@ def build_model(vocab_size, embedding_dim, rnn_units, batch_size):
     ])
     return model
 
+vocab_size = len(vocab)
 
 model = build_model(
-    vocab_size = len(vocab),
+    vocab_size = vocab_size,
     embedding_dim = EMBEDDING_DIM,
     rnn_units = RNN_UNITS,
     batch_size = BATCH_SIZE)
@@ -81,8 +89,51 @@ checkpoint_callback=tf.keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_prefix,
     save_weights_only=True)
 
-EPOCHS = 10
+EPOCHS = 50
 
 history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
 
-print(history)
+model = build_model(vocab_size, EMBEDDING_DIM, RNN_UNITS, batch_size=1)
+
+model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
+
+model.build(tf.TensorShape([1, None]))
+
+def generate_text(model, start_string):
+  # Evaluation step (generating text using the learned model)
+
+  # Number of characters to generate
+  num_generate = 10000
+
+  # Converting our start string to numbers (vectorizing)
+  input_eval = [char2idx[s] for s in start_string]
+  input_eval = tf.expand_dims(input_eval, 0)
+
+  # Empty string to store our results
+  text_generated = []
+
+  # Low temperatures results in more predictable text.
+  # Higher temperatures results in more surprising text.
+  # Experiment to find the best setting.
+  temperature = 0.7
+
+  # Here batch size == 1
+  model.reset_states()
+  for i in range(num_generate):
+      predictions = model(input_eval)
+      # remove the batch dimension
+      predictions = tf.squeeze(predictions, 0)
+
+      # using a categorical distribution to predict the character returned by the model
+      predictions = predictions / temperature
+      predicted_id = tf.random.categorical(predictions, num_samples=1)[-1,0].numpy()
+
+      # We pass the predicted character as the next input to the model
+      # along with the previous hidden state
+      input_eval = tf.expand_dims([predicted_id], 0)
+
+      text_generated.append(idx2char[predicted_id])
+
+  return (start_string + ''.join(text_generated))
+
+print(generate_text(model, start_string=u"the sex"))
