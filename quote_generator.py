@@ -99,6 +99,14 @@ model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
 
 model.build(tf.TensorShape([1, None]))
 
+# serialize model to JSON
+model_json = model.to_json()
+with open("model.json", "w") as json_file:
+    json_file.write(model_json)
+# serialize weights to HDF5
+model.save_weights("model.h5")
+print("Saved model to disk")
+
 def generate_text(model, start_string):
   # Evaluation step (generating text using the learned model)
 
@@ -117,8 +125,6 @@ def generate_text(model, start_string):
   # Experiment to find the best setting.
   temperature = 0.7
 
-  pretrained_model = tf.keras.Model
-  tf.saved_model.save(pretrained_model, "/")
   # Here batch size == 1
   model.reset_states()
   for i in range(num_generate):
