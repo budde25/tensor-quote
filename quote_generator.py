@@ -89,7 +89,7 @@ checkpoint_callback=tf.keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_prefix,
     save_weights_only=True)
 
-EPOCHS = 50
+EPOCHS = 60
 
 history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
 
@@ -103,7 +103,7 @@ def generate_text(model, start_string):
   # Evaluation step (generating text using the learned model)
 
   # Number of characters to generate
-  num_generate = 10000
+  num_generate = 50000
 
   # Converting our start string to numbers (vectorizing)
   input_eval = [char2idx[s] for s in start_string]
@@ -117,6 +117,8 @@ def generate_text(model, start_string):
   # Experiment to find the best setting.
   temperature = 0.7
 
+  pretrained_model = tf.keras.Model
+  tf.saved_model.save(pretrained_model, "/")
   # Here batch size == 1
   model.reset_states()
   for i in range(num_generate):
@@ -136,4 +138,4 @@ def generate_text(model, start_string):
 
   return (start_string + ''.join(text_generated))
 
-print(generate_text(model, start_string=u"the sex"))
+print(generate_text(model, start_string=u"this"))
